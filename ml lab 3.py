@@ -1,62 +1,122 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.linear_model import LinearRegression as lr
 import seaborn as sns
+import numpy as np
 
-df = pd.read_csv('insurance.csv')
+# Импорт моделей машинного обучения
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+
+# Импорт функции разделения данных
+from sklearn.model_selection import train_test_split
+
+# Импорт метрик оценки модели
+from sklearn.metrics import mean_squared_error as mse, r2_score as r2
+
+# Настройка отображения чисел (2 знака после запятой)
+pd.set_option('display.float_format', '{:.2f}'.format)
+
+# Отключение научной записи чисел
+np.set_printoptions(suppress=True)
+
+# Загрузка датасета и удаление столбца region
+df = pd.read_csv('insurance.csv').drop('region', axis=1)
+
+# Вывод количества признаков и строк
 print('Features: ', df.shape[1], '\nTarget: ', df.shape[0])
-testing = sorted(np.random.choice(np.arange(0, df.shape[0]), size=round(0.2 * df.shape[0]), replace=False).tolist())
-learning = [i for i in range(df.shape[0]) if i not in testing]
-print('\nNum of testing datas: ', len(testing))
-print('Num of learning datas: ', len(learning))
-'''
-#print('Linear Regression')
-#model = lr()
-#model.fit(df['charges'], df['age'])
-#y_pred = model.predict(df['charges'])
-#plt.plot(df['charges'], y_pred, color='red')
-print(df.select_dtypes([int, float]))
-sns.histplot(df['age'], bins=50)
-sns.heatmap(df.select_dtypes([int, float]))
-plt.show()
-sns.scatterplot(x='age', y='charges', data=df)
 
-print(df.shape[0] - df[df['bmi'] < 30].shape[0])
-print(df[['sex', 'charges']].groupby('sex').agg(['min', 'max', 'median', 'mean', 'sum']).plot(subplots=True))
-plt.plot()
-plt.show()
-print(df.groupby('sex')['sex'].count().plot())
+# Расчет количества тестовых и обучающих данных
+print('\nNum of testing datas: ', round(df.shape[0] * 0.2), '\nNum of learning datas: ', round(df.shape[0] * 0.8))
 
-plt.show()'''
+# Вывод датасета
+print(df)
+
+# Преобразование категориальных данных в числовые
+df = df.assign(smoker=df['smoker'].map({'no': 0, 'yes': 1}), sex=df['sex'].map({'female': 0, 'male': 1}))
+
+# Расчет корреляции между числовыми признаками и целевой переменной charges
+ts = df.select_dtypes([int, float]).corr()[['charges']].drop('charges').T
+
+# Список признаков для анализа
+listed = ['sex', 'age', 'bmi', 'children', 'smoker']
+
+# Удаление признаков со слабой корреляцией (< 0.1)
+for i in listed.copy():
+
+    # коэффициент корреляции
+    s = round(ts.loc['charges', i], 2)
+    if abs(s) < 0.1:
+        listed.remove(i)
+        df = df.drop(i, axis=1)
+        ts = ts.drop(i, axis=1)
+        continue
 
 print(df)
-#print(df.groupby('smoker')['charges'].agg(['sum', 'mean', 'count', 'median']).iloc[:, :].plot.line(marker='v', subplots=True))
-op = df.select_dtypes([int, float]).iloc[:, :]
-nd, nr, iz, ozh = pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-nd, nr, iz, ozh = (df[df['bmi'] < 18.5], df[(df['bmi'] >= 18.5) & (df['bmi'] <= 24.9)],
-                   df[(df['bmi'] >= 25) & (df['bmi'] <= 29.9)], df[df['bmi'] >= 30])
 
-pd.set_option('display.float_format', '{:.2f}'.format)
-listed = {'Недостаток веса': nd, 'Норма': nr, 'Избыток веса': iz, 'Ожирение': ozh}
-ch = pd.DataFrame(index=[['sum', 'mean', 'age_mean']])
-for i in listed:
-    print('\n', i)
-    #print(listed[i])
-    #print(listed[i].shape)
-    print(listed[i].groupby('region')['charges'].agg(['sum', 'mean']))
-    print(listed[i].pivot(columns='sex', values='charges').plot(subplots=True))
-    print(listed[i].pivot_table(columns='sex', index='age', values='charges', aggfunc='mean'))
-#    print(listed[i].groupby(['smoker', 'sex'])['charges'].agg(['mean', 'sum', 'count']).plot.area(subplots=True))
-    ch[i] = [listed[i]['charges'].sum(), listed[i]['charges'].mean(), listed[i]['age'].mean()]
-    #sns.heatmap(listed[i].select_dtypes([int, float]))
+# Вывод признаков, которые больше всего влияют на charges
+print("\nMore dependences in:", ", ".join(listed))
 
-#print(ch.T.plot(subplots=True))
-#print(df.groupby(['smoker', 'sex', 'region']).agg({'age' :['mean'], 'bmi':['mean', 'median', 'min'],
-#                                                   'charges': ['sum', 'mean']}).plot.line(marker='v', subplots=True, ))
-#print(df.groupby(['smoker', 'sex', 'region']).agg({'age' :['mean'], 'bmi':['mean', 'median', 'min'],
-#                                                   'charges': ['sum', 'mean']}))
-#print(df.groupby(['bmi']).agg({'charges': ['sum', 'mean', 'count']}).plot(subplots=True, marker='p'))
-#print(df.iloc[:, :5].groupby('smoker').agg(['sum', 'mean', 'count']))
-#sns.heatmap(df.select_dtypes([int, float]))
+# Разделение данных на обучающую и тестовую выборки
+x_train, x_test, y_train, y_test = train_test_split(
+    df.drop('charges', axis=1),  # признаки
+    df['charges'],                             # целевая переменная
+    test_size=0.2,                             # 20% тест
+    random_state=42)
+
+# Создание моделей: линейная регрессия, дерево решений
+lr, dt = LinearRegression(), DecisionTreeRegressor(max_depth=4, random_state=42)
+
+# Обучение моделей
+lr.fit(x_train, y_train), dt.fit(x_train, y_train)
+
+# Предсказания моделей
+pred_lr, pred_dt = np.maximum(lr.predict(x_test), 0), np.maximum(dt.predict(x_test), 0)
+
+# Расчет ошибок (MSE)
+mse_lr, mse_dt = mse(y_test, pred_lr), mse(y_test, pred_dt)
+
+# Расчет качества модели (R²)
+r2_lr, r2_dt = r2(y_test, pred_lr), r2(y_test, pred_dt)
+
+# Вывод метрик моделей
+print("\nModel metrics:")
+print(f"Linear Regression -> MSE: {mse_lr:.2f}, R2: {r2_lr:.3f}")
+print(f"Decision Tree     -> MSE: {mse_dt:.2f}, R2: {r2_dt:.3f}")
+
+# ---------- Визуализация ----------
+
+# Тепловая карта корреляции
+plt.figure()
+sns.heatmap(ts, annot=True, cmap="coolwarm", fmt=".2f")
+plt.title("Correlation with charges")
+plt.show()
+
+# Сравнение моделей по MSE
+plt.figure()
+plt.bar(['Linear Regression', 'Decision Tree'], [mse_lr, mse_dt])
+plt.title("MSE comparison")
+plt.ylabel("MSE")
+plt.show()
+
+# Сравнение моделей по R2
+plt.figure()
+plt.bar(['Linear Regression', 'Decision Tree'], [r2_lr, r2_dt])
+plt.title("R2 comparison")
+plt.ylabel("R2")
+plt.show()
+
+# График: реальные значения vs предсказанные
+plt.figure()
+plt.scatter(y_test, pred_lr, alpha=0.6, label="Linear Regression")
+plt.scatter(y_test, pred_dt, alpha=0.6, label="Decision Tree")
+
+# Диагональная линия идеального предсказания
+plt.plot([y_test.min(), y_test.max()],
+         [y_test.min(), y_test.max()],
+         linestyle="--")
+plt.xlabel("Real charges")
+plt.ylabel("Predicted charges")
+plt.title("Real vs Predicted")
+plt.legend()
+plt.grid(True)
 plt.show()
