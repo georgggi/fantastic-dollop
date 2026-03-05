@@ -35,20 +35,19 @@ print(df)
 df = df.assign(smoker=df['smoker'].map({'no': 0, 'yes': 1}), sex=df['sex'].map({'female': 0, 'male': 1}))
 
 # Расчет корреляции между числовыми признаками и целевой переменной charges
-ts = df.select_dtypes([int, float]).corr()[['charges']].drop('charges').T
+df_corr = df.select_dtypes([int, float]).corr()[['charges']].drop('charges').T
 
 # Список признаков для анализа
 listed = ['sex', 'age', 'bmi', 'children', 'smoker']
 
 # Удаление признаков со слабой корреляцией (< 0.1)
-for i in listed.copy():
+for feat in listed.copy():
 
     # коэффициент корреляции
-    s = round(ts.loc['charges', i], 2)
+    s = round(df_corr.loc['charges', feat], 2)
     if abs(s) < 0.1:
-        listed.remove(i)
-        df = df.drop(i, axis=1)
-        ts = ts.drop(i, axis=1)
+        listed.remove(feat)
+        df, df_corr = df.drop(feat, axis=1), df_corr.drop(feat, axis=1)
         continue
 
 print(df)
@@ -87,7 +86,7 @@ print(f"Decision Tree     -> MSE: {mse_dt:.2f}, R2: {r2_dt:.3f}")
 
 # Тепловая карта корреляции
 plt.figure()
-sns.heatmap(ts, annot=True, cmap="coolwarm", fmt=".2f")
+sns.heatmap(df_corr, annot=True, cmap="coolwarm", fmt=".2f")
 plt.title("Correlation with charges")
 plt.show()
 
