@@ -50,10 +50,11 @@ for feat in listed.copy():
         df, df_corr = df.drop(feat, axis=1), df_corr.drop(feat, axis=1)
         continue
 
-print(df)
-
 # Вывод признаков, которые больше всего влияют на charges
 print("\nMore dependences in:", ", ".join(listed))
+
+# Удаление выбросов: некурящие с очень большими medical charges
+df = df[~((df['smoker'] == 0) & (df['charges'] > 22500))]
 
 # Разделение данных на обучающую и тестовую выборки
 x_train, x_test, y_train, y_test = train_test_split(
@@ -67,9 +68,9 @@ lr, dt = LinearRegression(), DecisionTreeRegressor(max_depth=4, random_state=42)
 
 # Обучение моделей
 lr.fit(x_train, y_train), dt.fit(x_train, y_train)
-
+#np.maximum(lr.predict(x_test), 0), np.maximum(dt.predict(x_test), 0)
 # Предсказания моделей
-pred_lr, pred_dt = np.maximum(lr.predict(x_test), 0), np.maximum(dt.predict(x_test), 0)
+pred_lr, pred_dt = lr.predict(x_test), dt.predict(x_test)
 
 # Расчет ошибок (MSE)
 mse_lr, mse_dt = mse(y_test, pred_lr), mse(y_test, pred_dt)
@@ -79,8 +80,8 @@ r2_lr, r2_dt = r2(y_test, pred_lr), r2(y_test, pred_dt)
 
 # Вывод метрик моделей
 print("\nModel metrics:")
-print(f"Linear Regression -> MSE: {mse_lr:.2f}, R2: {r2_lr:.3f}")
-print(f"Decision Tree     -> MSE: {mse_dt:.2f}, R2: {r2_dt:.3f}")
+print(f"Linear Regression -> MSE: {mse_lr**0.5:.2f}, R2: {r2_lr:.3f}")
+print(f"Decision Tree     -> MSE: {mse_dt**0.5:.2f}, R2: {r2_dt:.3f}")
 
 # ---------- Визуализация ----------
 
@@ -119,4 +120,3 @@ plt.title("Real vs Predicted")
 plt.legend()
 plt.grid(True)
 plt.show()
-
