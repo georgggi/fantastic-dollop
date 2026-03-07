@@ -37,21 +37,18 @@ df = df.assign(smoker=df['smoker'].map({'no': 0, 'yes': 1}), sex=df['sex'].map({
 # Расчет корреляции между числовыми признаками и целевой переменной charges
 df_corr = df.select_dtypes([int, float]).corr()[['charges']].drop('charges').T
 
-# Список признаков для анализа
-listed = ['sex', 'age', 'bmi', 'children', 'smoker']
-
 # Удаление признаков со слабой корреляцией (< 0.1)
-for feat in listed.copy():
-
-    # коэффициент корреляции
-    s = round(df_corr.loc['charges', feat], 2)
-    if abs(s) < 0.1:
-        listed.remove(feat)
-        df, df_corr = df.drop(feat, axis=1), df_corr.drop(feat, axis=1)
-        continue
+for feat in df.columns:
+    if feat != 'charges':
+        
+        # коэффициент корреляции
+        s = round(df_corr.loc['charges', feat], 2)
+        if abs(s) < 0.1:
+            df, df_corr = df.drop(feat, axis=1), df_corr.drop(feat, axis=1)
+            continue
 
 # Вывод признаков, которые больше всего влияют на charges
-print("\nMore dependences in:", ", ".join(listed))
+print("\nMore dependences in:", ', '.join(df_corr.columns))
 
 # Удаление выбросов: некурящие с очень большими medical charges
 df = df[~((df['smoker'] == 0) & (df['charges'] > 22500))]
