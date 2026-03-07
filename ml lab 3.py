@@ -45,7 +45,6 @@ for feat in df.columns:
         s = round(df_corr.loc['charges', feat], 2)
         if abs(s) < 0.1:
             df, df_corr = df.drop(feat, axis=1), df_corr.drop(feat, axis=1)
-            continue
 
 # Вывод признаков, которые больше всего влияют на charges
 print("\nMore dependences in:", ', '.join(df_corr.columns))
