@@ -91,6 +91,52 @@ df_metrics = pd.DataFrame(metrics_results)
 print('Model Comparison Table')
 print(df_metrics.to_string(index=False))
 
+# список для хранения результатов по моделям:
+# [название модели, количество ошибок]
+summa_models = []
+
+# перебираем модели
+for name, model in [('DesicionTree', clDT), ('KNN', clKNN), ('RandomForest', clRF), ('Voting', clV)]:
+
+    # строим матрицу ошибок (confusion matrix)
+    # строки — реальные классы (y_test)
+    # столбцы — предсказанные классы
+    # margins=True добавляет сумму по строкам и столбцам
+    confusion_matrix = pd.crosstab(y_test, model.predict(x_test), margins=True)
+
+    # переменная для подсчёта ошибок (неверных предсказаний)
+    summa = 0
+
+    # проходим по матрице (исключая последнюю строку/столбец "All")
+    for i in range(len(confusion_matrix) - 1):
+        for j in range(len(confusion_matrix[i]) - 1):
+
+            # если i != j — это ошибка (не диагональ)
+            if i != j:
+                summa += confusion_matrix[i][j]
+
+    # сохраняем результат для текущей модели
+    summa_models.append([name, int(summa)])
+
+# поиск модели с минимальным количеством ошибок
+min, i, name_min = 0, 0, ''
+
+for name, summa in summa_models:
+
+    # для первой модели просто задаём начальные значения
+    if i == 0:
+        min, name_min = summa, name
+        continue
+
+    # если текущая модель даёт меньше ошибок — обновляем минимум
+    if min > summa:
+        min, name_min = summa, name
+
+    i += 1
+
+# вывод лучшей модели
+print(f'Самая лучшая модель: {name_min}, потому что сумма неправильных ответов наименьшая: {min}')
+
 # Матрицы ошибок
 for name, model in [('DesicionTree', clDT), ('KNN', clKNN), ('RandomForest', clRF), ('Voting', clV)]:
     plt.subplots()
