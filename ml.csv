@@ -1,4 +1,4 @@
-age,sex,screen_time_hours_per_day,social_media_hours_per_day,gaming_hours_per_day,video_hours_per_day,months_in_year,online_study_hours_per_day,internet_usage_for_homework_freq,sum,self_study_hours_per_day,phone_distraction_during_study_freq,digital_addiction_level,sleep_hours_per_night,device_usage_before_sleep_freq,GPA,rofl
+age,sex,screen_time,social_media,gaming,video,miny,online_study,internet_usage_for_homework_freq,sum,self_study,phone_distraction_during_study_freq,digital_addiction_level,sleep_hours_per_night,device_usage_before_sleep_freq,GPA,rofl
 "7","Мужской","45","76","65","34","23","453","Всегда","8","453","Всегда","Да","5","Да","5","1"
 "18","Женский","9","7","0,5","4,5","12","1,5","Иногда","4","3,5","Часто","Не уверен(а)","7","Да","3","0"
 "18","Женский","2","0","0","0,75","12 ","1,5","Часто","4","1","Иногда","Нет","7","Нет","5","0"
