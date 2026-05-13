@@ -24,7 +24,7 @@ corr = numeric_df.corr()
 
 print(corr)
 
-sns.heatmap(df[["avg_check","hours","WiFi(1/0)","delivery(1/0)","bayes_rating"]].corr()[["bayes_rating"]].drop("bayes_rating").T, annot=True)
+sns.heatmap(df[["avg_check","hours","WiFi(1/0)","delivery(1/0)","bayes_rating", "rating"]].corr()[[("bayes_rating", "rating")]].drop(("bayes_rating", "rating")).T, annot=True)
 
 plt.show()
 # Сортировка
