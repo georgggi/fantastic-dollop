@@ -12,45 +12,62 @@ C = df["rating"].mean()
 m = df["reviews"].quantile(0.75)
 
 # Формула Байеса
-df["bayes_rating"] = (
-    (df["reviews"] / (df["reviews"] + m)) * df["rating"]
-    +
-    (m / (df["reviews"] + m)) * C
-)
+df["bayes_rating"] = ((df["reviews"] / (df["reviews"] + m)) * df["rating"] + (m / (df["reviews"] + m)) * C)
 
-numeric_df = df.select_dtypes(include="number")
+for i in ["bayes_rating", "rating"]:
+    # Средний рейтинг по каждому уникальному ресторану
+    rest_rating = df.groupby("name")[i].mean().reset_index()
 
-corr = numeric_df.corr()
+    # TOP 10
+    top10 = rest_rating.sort_values(i, ascending=False).head(10)
 
-print(corr)
+    # BOTTOM 10
+    bottom10 = rest_rating.sort_values(i, ascending=True).head(10)
 
-sns.heatmap(df[["avg_check","hours","WiFi(1/0)","delivery(1/0)","bayes_rating", "rating"]].corr()[[("bayes_rating", "rating")]].drop(("bayes_rating", "rating")).T, annot=True)
+    print("TOP 10")
+    print(top10)
+
+    print("\nBOTTOM 10")
+    print(bottom10)
+
+corr_data = df[["avg_check", "hours", "WiFi(1/0)", "delivery(1/0)", "rating", "bayes_rating"]].corr().loc[["rating", "bayes_rating"],
+              ["avg_check", "hours", "WiFi(1/0)", "delivery(1/0)"]]
+
+plt.figure(figsize=(8, 3))
+
+sns.heatmap(corr_data, annot=True, cmap="magma")
+
+plt.ylabel("Рейтинги")
+plt.xlabel("Признаки")
 
 plt.show()
+
 # Сортировка
 df = df.sort_values("bayes_rating", ascending=False)
 
 # Топ ресторанов
 print(df[["name", "rating", "reviews", "bayes_rating"]].head(10))
 
-plt.figure(figsize=(8,6))
+print()
 
-sns.heatmap(corr, annot=True)
+categ, num = ['name', 'cuisine','type','district','microdistict'], 0
 
-plt.show()
+while num < len(categ):
 
-groups = [group["bayes_rating"].values for _, group in df.groupby("district")]
+    print(categ[num].capitalize())
 
-f_stat, p_value = f_oneway(*groups)
+    for i in ["bayes_rating", "rating"]:
 
-print(f_stat, p_value)
+        print(i)
 
-groups = [group["rating"].values for _, group in df.groupby("district")]
+        groups = [group[i].values for _, group in df.groupby(categ[num])]
 
-f_stat, p_value = f_oneway(*groups)
+        f_stat, p_value = f_oneway(*groups)
 
-print(f_stat, p_value)
+        print(f'F: {f_stat}, P: {p_value}')
 
-df.groupby("district")["bayes_rating"].mean().sort_values().plot(kind="barh")
+        df.groupby(categ[num])[i].mean().sort_values().plot(kind="barh")
 
-plt.show()
+        plt.show()
+
+    num += 1
