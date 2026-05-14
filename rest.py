@@ -8,8 +8,40 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 from catboost import CatBoostRegressor
+import numpy as np
 
 df = pd.read_csv("restaurants.csv")
+
+plt.figure(figsize=(12, 6))
+# Сортируем для красоты по медиане рейтинга
+order = df.groupby('cuisine')['rating'].median().sort_values(ascending=False).index
+
+sns.boxplot(data=df, x='cuisine', y='rating', order=order, palette='viridis')
+plt.xticks(rotation=45)
+plt.title('Распределение рейтинга по типам кухни (от высшего к низшему)')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=df, x='reviews', y='rating', hue='avg_check', palette='coolwarm', alpha=0.7)
+plt.title('Взаимосвязь количества отзывов и рейтинга')
+plt.xlabel('Количество отзывов')
+plt.ylabel('Рейтинг')
+plt.show()
+
+plt.figure(figsize=(12, 6))
+sns.countplot(data=df, x='cuisine', order=df['cuisine'].value_counts().index, palette='magma')
+plt.xticks(rotation=45)
+plt.title('Количество заведений по типам кухни в датасете')
+plt.show()
+
+plt.figure(figsize=(8, 10))
+# Считаем среднее по районам
+district_pivot = df.groupby('district')[['rating', 'avg_check', 'hours']].mean()
+
+# Масштабируем данные для хитмапа (чтобы чек не перекрывал рейтинг цветом)
+sns.heatmap(district_pivot, annot=True, cmap='RdYlGn', fmt=".2f", linewidths=.5)
+plt.title('Тепловая карта: Средние показатели по районам')
+plt.show()
 
 # Средний рейтинг по всему датасету
 C = df["rating"].mean()
@@ -32,19 +64,19 @@ for i in ["bayes_rating", "rating"]:
     print("\nBOTTOM 10")
     print(rest_rating.sort_values(i, ascending=True).head(10))
 
-df = df.drop(columns=["name", "reviews"])
+df = df.drop(columns=["name"])
 
 corr_data = df[["avg_check", "hours", "WiFi(1/0)", "delivery(1/0)", "rating", "bayes_rating"]].corr().loc[["rating", "bayes_rating"],
               ["avg_check", "hours", "WiFi(1/0)", "delivery(1/0)"]]
 
-plt.figure(figsize=(8, 3))
+'''plt.figure(figsize=(8, 3))
 
 sns.heatmap(corr_data, annot=True, cmap="magma")
 
 plt.ylabel("Рейтинги")
 plt.xlabel("Признаки")
 
-plt.show()
+plt.show()'''
 
 categ, num = ['cuisine','type','district','microdistict'], 0
 
@@ -74,46 +106,61 @@ def remove_outliers_iqr(df, columns):
         Q3 = df_clean[col].quantile(0.75)
         IQR = Q3 - Q1
 
-        # Определение границ "усов"
         lower_bound = Q1 - 5 * IQR
         upper_bound = Q3 + 5 * IQR
 
-        # Фильтрация данных
-        initial_count = len(df_clean)
         df_clean = df_clean[(df_clean[col] >= lower_bound) & (df_clean[col] <= upper_bound)]
-
-        print(f"Колонка '{col}': удалено {initial_count - len(df_clean)} строк(и).")
 
     return df_clean
 
+
+
+'''# 1. Логарифмирование количества отзывов
+# Используем log1p (log(1+x)), чтобы избежать ошибки, если отзывов 0
+df['log_reviews'] = np.log1p(df['reviews'])
+
+# 2. Объединение редких кухонь в "Другое"
+# Укажите порог (например, 5 заведений)
+threshold = 5
+counts = df['cuisine'].value_counts()
+
+# Находим названия кухонь, которых меньше порога
+rare_cuisines = counts[counts < threshold].index
+
+# Заменяем их на 'Другое'
+df['cuisine'] = df['cuisine'].replace(rare_cuisines, 'Другое')
+
+print(f"Объединено редких кухонь: {len(rare_cuisines)}")
+print(f"Новое количество уникальных кухонь: {df['cuisine'].nunique()}")'''
+
 # Список колонок с выбросами на ваших графиках
 cols_to_fix = ['avg_check', 'rating', 'bayes_rating', 'hours']
-
-# Применение функции (предположим, ваш DataFrame называется df)
 df = remove_outliers_iqr(df, cols_to_fix)
 
+# 3. Теперь можно делать One-Hot Encoding
+# Количество колонок будет меньше 38, зато они будут более качественными
 df = pd.get_dummies(df, columns=['type', 'cuisine']).astype(int)
 
-# Признаки
-X = df.drop(["rating", "bayes_rating"], axis=1)
+df = df.drop(columns="reviews")
 
-# Целевая переменная
-y = df["rating"]
+# Настройка стиля
+sns.set_theme(style="whitegrid")
+plt.figure(figsize=(15, 20))
 
 # Разделение данных
 X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
+    df.drop(["rating", "bayes_rating"], axis=1),
+    df["rating"],
     test_size=0.2,
-    random_state=44
+    random_state=42
 )
 
 # Модели
 models = {
     "LinearRegression": LinearRegression(),
-    "RandomForest": RandomForestRegressor(random_state=44),
-    "XGBoost": XGBRegressor(random_state=44),
-    "CatBoost": CatBoostRegressor(verbose=0, random_state=44)
+    "RandomForest": RandomForestRegressor(random_state=42),
+    "XGBoost": XGBRegressor(random_state=42),
+    "CatBoost": CatBoostRegressor(verbose=0, random_state=42)
 }
 
 results = []
