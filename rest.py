@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import f_oneway
 
-df = pd.read_csv("restaurant1.csv")
+df = pd.read_csv("restaurants.csv")
 
 # Средний рейтинг по всему датасету
 C = df["rating"].mean()
@@ -19,16 +19,12 @@ for i in ["bayes_rating", "rating"]:
     rest_rating = df.groupby("name")[i].mean().reset_index()
 
     # TOP 10
-    top10 = rest_rating.sort_values(i, ascending=False).head(10)
+    print("TOP 10")
+    print(rest_rating.sort_values(i, ascending=False).head(10))
 
     # BOTTOM 10
-    bottom10 = rest_rating.sort_values(i, ascending=True).head(10)
-
-    print("TOP 10")
-    print(top10)
-
     print("\nBOTTOM 10")
-    print(bottom10)
+    print(rest_rating.sort_values(i, ascending=True).head(10))
 
 corr_data = df[["avg_check", "hours", "WiFi(1/0)", "delivery(1/0)", "rating", "bayes_rating"]].corr().loc[["rating", "bayes_rating"],
               ["avg_check", "hours", "WiFi(1/0)", "delivery(1/0)"]]
